@@ -1,5 +1,5 @@
 import enum
-from socket import inet_ntop
+from socket import inet_ntop, htons
 from socket import AF_INET
 
 class TcpHeader:
@@ -61,7 +61,8 @@ class TcpHeader:
         string += "\tdata offset: " + str(self.data_off) + "\n"
         string += "\twindow size: " + str(self.win_size) + "\n"
         string += "\tchecksum: " + str(self.checksum) + "\n"
-        string += "\turg_ptr: " + (str(self.urg_ptr) if (self.flags & TcpHeader.Flags.URG == TcpHeader.Flags.URG) else "URG flag not set") + "\n"
+        string += "\turgent pointer: " + (str(self.urg_ptr) if (self.flags & TcpHeader.Flags.URG == TcpHeader.Flags.URG) else "URG flag not set") + "\n"
+        string += "\thas options? " + str(self.options != None) + "\n"
 
         return string
 
@@ -73,6 +74,67 @@ class TcpHeader:
         
         return '|'.join(map(str, flag_names))
     
+    def word_sum(data, byteorder):
+        total = 0
+        data_word_count = int(len(data) / 2)
+        for i in range(0, data_word_count):
+            word_start = i * 2
+            word_end = word_start + 2
+            word = int.from_bytes(data[word_start:word_end], byteorder)
+            print("word in hex: " + format(word, '0x'))
+            total += word
+        
+        data_len = len(data)
+        if data_len % 2:
+            last_byte = data[data_len - 1]
+            total += last_byte
+
+        return total
+
+    def calc_checksum(self, src_ip, dst_ip, data):
+        """Calculates the TCP header checksum for this header.
+        
+        As with to_bytes, all other members of the header must be set before calling this function.
+        
+        Arguments:
+        src_ip -- the source IP address as an integer in host byte order.
+        dst_ip -- the destination IP address as an integer in host byte order.
+        data   -- the data that will be included in the packet.
+        """
+        checksum = 0
+
+        # Calculate the checksum for the pseudo-header
+        checksum += TcpHeader.word_sum(src_ip.to_bytes(4, 'little'), 'big')
+        checksum += TcpHeader.word_sum(dst_ip.to_bytes(4, 'little'), 'big')
+        checksum += 1536 # protocol
+        checksum += int.from_bytes((self.data_off + len(data)).to_bytes(2, 'little'), 'big')
+
+        # Don't add self.checksum - it's zeroed out in this calculation
+        checksum += int.from_bytes(self.src_port.to_bytes(2, 'little'), 'big')
+        checksum += int.from_bytes(self.dst_port.to_bytes(2, 'little'), 'big')
+        checksum += TcpHeader.word_sum(self.seq_num.to_bytes(4, 'little'), 'big')
+        checksum += TcpHeader.word_sum(self.ack_num.to_bytes(4, 'little'), 'big')
+        checksum += int.from_bytes(((self.data_off << 10) + self.flags).to_bytes(2, 'little'), 'big')
+        checksum += int.from_bytes(self.win_size.to_bytes(2, 'little'), 'big')
+        checksum += int.from_bytes(self.urg_ptr.to_bytes(2, 'little'), 'big')
+
+        if self.options:
+            checksum += TcpHeader.word_sum(self.options, 'little')
+
+        checksum += TcpHeader.word_sum(data, 'little')
+
+        print("checksum before folding: " + str(checksum))
+
+        # Fold to get the ones-complement result (taken from https://locklessinc.com/articles/tcp_checksum/)
+        #
+        # I wish I knew the size of ints here. Oh well
+        while checksum >> 16:
+            checksum_top = checksum & 0xFFFF0000
+            checksum = (checksum & 0xFFFF) + (checksum_top >> 16)
+
+        
+        return htons((~checksum) & 0xFFFF)
+
     def to_bytes(self, src_ip, dst_ip, data):
         """Creates a TCP header with the given source and destination addresses and data.
 
@@ -80,9 +142,31 @@ class TcpHeader:
         the IP addresses and the data won't actually be included in a header anywhere; they're
         used for creating the TCP "pseudo-header" included in the checksum calculation.
 
+        Note also that (like basically everything else in this program) this is not very efficient
+        since we could adjust the checksum based on the previous values instead of calculating
+        the whole thing again.
+
         Arguments:
         src_ip -- the source IP address as an integer in host byte order.
         dst_ip -- the destination IP address as an integer in host byte order.
         data   -- the data that will be included in the packet.
         """
-        pass
+
+        self.checksum = self.calc_checksum(src_ip, dst_ip, data)
+
+        data_off_and_flags = self.data_off << 10 + self.flags
+        
+        result = bytearray()
+        result.append(self.src_port.to_bytes(2, byteorder='big'))
+        result.append(self.dst_port.to_bytes(2, byteorder='big'))
+        result.append(self.seq_num.to_bytes(4, byteorder='big'))
+        result.append(self.ack_num.to_bytes(4, byteorder='big'))
+        result.append(data_off_and_flags.to_bytes(2, byteorder='big'))
+        result.append(self.win_size.to_bytes(2, byteorder='big'))
+        result.append(self.checksum.to_bytes(2, byteorder='big'))
+        result.append(self.urg_ptr.to_bytes(2, byteorder='big'))
+
+        # Check for options at the end of the header
+        if self.options:
+            result.append(self.options)
+        
