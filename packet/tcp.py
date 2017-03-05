@@ -81,7 +81,6 @@ class TcpHeader:
             word_start = i * 2
             word_end = word_start + 2
             word = int.from_bytes(data[word_start:word_end], byteorder)
-            print("word in hex: " + format(word, '0x'))
             total += word
         
         data_len = len(data)
@@ -123,8 +122,6 @@ class TcpHeader:
 
         checksum += TcpHeader.word_sum(data, 'little')
 
-        print("checksum before folding: " + str(checksum))
-
         # Fold to get the ones-complement result (taken from https://locklessinc.com/articles/tcp_checksum/)
         #
         # I wish I knew the size of ints here. Oh well
@@ -154,19 +151,20 @@ class TcpHeader:
 
         self.checksum = self.calc_checksum(src_ip, dst_ip, data)
 
-        data_off_and_flags = self.data_off << 10 + self.flags
+        data_off_and_flags = (self.data_off << 10) + self.flags
         
         result = bytearray()
-        result.append(self.src_port.to_bytes(2, byteorder='big'))
-        result.append(self.dst_port.to_bytes(2, byteorder='big'))
-        result.append(self.seq_num.to_bytes(4, byteorder='big'))
-        result.append(self.ack_num.to_bytes(4, byteorder='big'))
-        result.append(data_off_and_flags.to_bytes(2, byteorder='big'))
-        result.append(self.win_size.to_bytes(2, byteorder='big'))
-        result.append(self.checksum.to_bytes(2, byteorder='big'))
-        result.append(self.urg_ptr.to_bytes(2, byteorder='big'))
+        result.extend(self.src_port.to_bytes(2, byteorder='big'))
+        result.extend(self.dst_port.to_bytes(2, byteorder='big'))
+        result.extend(self.seq_num.to_bytes(4, byteorder='big'))
+        result.extend(self.ack_num.to_bytes(4, byteorder='big'))
+        result.extend(data_off_and_flags.to_bytes(2, byteorder='big'))
+        result.extend(self.win_size.to_bytes(2, byteorder='big'))
+        result.extend(self.checksum.to_bytes(2, byteorder='big'))
+        result.extend(self.urg_ptr.to_bytes(2, byteorder='big'))
 
         # Check for options at the end of the header
         if self.options:
-            result.append(self.options)
+            result.extend(self.options)
         
+        return result
