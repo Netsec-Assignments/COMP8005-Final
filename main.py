@@ -1,4 +1,24 @@
 #!/usr/bin/env python3
+###################################################################################################
+#Name:	main.py
+#
+#       Developer:	Mat Siwoski/Shane Spoor
+#
+#       Created On: 2017-03-04
+#
+#       Description:
+#       This is a port forwarder application. Port forwarding is a mechanism that facilitates the 
+#       forwarding of network traffic (connections) from one machine to another. The most common 
+#       use of this technique is to allow an access to an externally available service (such as a 
+#       web server), which is running on a server in a private LAN. In this way, remote client 
+#       systems are able to connect to servers offering specific services within a private LAN, 
+#       depending on the port that is used to connect to the service.
+#
+#    Revisions:
+#    (none)
+#
+###################################################################################################
+
 import sys
 import struct
 import json

@@ -1,3 +1,17 @@
+###################################################################################################
+#Name:	tcp.py
+#
+#       Developer:	Mat Siwoski/Shane Spoor
+#
+#       Created On: 2017-03-04
+#
+#       Description:
+#       This is parses the tcp header and will also display the ip header out to the user.
+#
+#    Revisions:
+#    (none)
+#
+###################################################################################################
 import enum
 from socket import inet_ntop, htons
 from socket import AF_INET
@@ -12,13 +26,32 @@ class TcpHeader:
         PSH = 8,
         ACK = 16,
         URG = 32
-
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		__init__
+#
+#    Prototype:	def __init__(self, header_bytes = None)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - contents of the ip header
+#    header_bytes - a bytes-like object containing the packet data without link- or network-layer headers.
+#
+#    Return Values:
+#	
+#    Description:
+#    This function unpacks contents into an tcp header. If bytes are provided, unpacks then into an IP header; 
+#    otherwise, creates a new header with all fields set to None. 
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def __init__(self, header_bytes = None):
-        """If bytes are provided, unpacks them into a TCP header; otherwise, creates a new header with all fields set to None.
-        
-        Arguments:
-        header_bytes -- a bytes-like object containing the packet data without link- or network-layer headers.
-        """
         if not (header_bytes is None):
             # Unpack the buffer into a TCP header
             self.src_port = int.from_bytes(header_bytes[0:2], 'big')
@@ -50,7 +83,29 @@ class TcpHeader:
             self.checksum = None
             self.urg_ptr = None
             self.options = None
-
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		__str__
+#
+#    Prototype:	def __str__(self)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - tcp header info
+#
+#    Return Values:
+#	
+#    Description:
+#    This function displays the contents of the tcpip header.
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def __str__(self):
         string = "TCP header contents:\n"
         string += "\tsource port: " + str(self.src_port) + "\n"
@@ -65,7 +120,29 @@ class TcpHeader:
         string += "\thas options? " + str(self.options != None) + "\n"
 
         return string
-
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		get_flags_string
+#
+#    Prototype:	def get_flags_string(self)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - flags
+#
+#    Return Values:
+#	
+#    Description:
+#    This function will get the flags in a string.
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def get_flags_string(self):
         flag_names = []
         for flag in TcpHeader.Flags:
@@ -73,7 +150,30 @@ class TcpHeader:
                 flag_names.append(flag.name)
         
         return '|'.join(map(str, flag_names))
-    
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		word_sum
+#
+#    Prototype:	def word_sum(data, byteorder)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    data  - data for the word sum
+#    byteorder - the byte order.
+#
+#    Return Values:
+#	
+#    Description:
+#    This function will calculate the word sum.
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################    
     def word_sum(data, byteorder):
         total = 0
         data_word_count = int(len(data) / 2)
@@ -90,16 +190,34 @@ class TcpHeader:
 
         return total
 
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		calc_checksum
+#
+#    Prototype:	def calc_checksum(self, src_ip, dst_ip, data)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - 
+#    src_ip - source ip
+#    dst_ip - destination ip
+#    data - the data that will be included in the packet.
+#
+#    Return Values:
+#	
+#    Description:
+#    This function will calculates the TCP header checksum for this header. As with to_bytes, 
+#    all other members of the header must be set before calling this function.   
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################    
     def calc_checksum(self, src_ip, dst_ip, data):
-        """Calculates the TCP header checksum for this header.
-        
-        As with to_bytes, all other members of the header must be set before calling this function.
-        
-        Arguments:
-        src_ip -- the source IP address as an integer in host byte order.
-        dst_ip -- the destination IP address as an integer in host byte order.
-        data   -- the data that will be included in the packet.
-        """
         checksum = 0
 
         # Calculate the checksum for the pseudo-header
@@ -131,24 +249,38 @@ class TcpHeader:
 
         
         return htons((~checksum) & 0xFFFF)
-
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		to_bytes
+#
+#    Prototype:	def to_bytes(self, src_ip, dst_ip, data)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - 
+#    src_ip - the source IP address as an integer in host byte order.
+#    dst_ip - the destination IP address as an integer in host byte order.
+#    data - the data that will be included in the packet.
+#
+#    Return Values:
+#	
+#    Description:
+#    This function will creates a TCP header with the given source and destination addresses and data.
+#    All other members of the header must be set before calling this function. Note that the IP 
+#    addresses and the data won't actually be included in a header anywhere; they're used for creating 
+#    the TCP "pseudo-header" included in the checksum calculation. 
+#    Note also that (like basically everything else in this program) this is not very efficient since 
+#    we could adjust the checksum based on the previous values instead of calculating the whole thing again.
+#
+#    Revisions:
+#	(none)
+#    
+######################################################################################################### 
     def to_bytes(self, src_ip, dst_ip, data):
-        """Creates a TCP header with the given source and destination addresses and data.
-
-        All other members of the header must be set before calling this function. Note that
-        the IP addresses and the data won't actually be included in a header anywhere; they're
-        used for creating the TCP "pseudo-header" included in the checksum calculation.
-
-        Note also that (like basically everything else in this program) this is not very efficient
-        since we could adjust the checksum based on the previous values instead of calculating
-        the whole thing again.
-
-        Arguments:
-        src_ip -- the source IP address as an integer in host byte order.
-        dst_ip -- the destination IP address as an integer in host byte order.
-        data   -- the data that will be included in the packet.
-        """
-
         self.checksum = self.calc_checksum(src_ip, dst_ip, data)
 
         data_off_and_flags = (self.data_off << 10) + self.flags

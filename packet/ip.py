@@ -1,3 +1,18 @@
+###################################################################################################
+#Name:	ip.py
+#
+#       Developer:	Mat Siwoski/Shane Spoor
+#
+#       Created On: 2017-03-04
+#
+#       Description:
+#       This is parses the ip header and will also display the ip header out to the user.
+#
+#    Revisions:
+#    (none)
+#
+###################################################################################################
+
 import enum
 from socket import inet_ntop
 from socket import AF_INET
@@ -10,11 +25,32 @@ class IpHeader:
         DF = 2, # Don't Fragment
         RESERVED = 4
 
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		__init__
+#
+#    Prototype:	def __init__(self, header_bytes = None)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - contents of the ip header
+#    header_bytes - a bytes-like object containing the packet data without link-layer header.
+#
+#    Return Values:
+#	
+#    Description:
+#    This function unpacks contents into an IP header. If bytes are provided, unpacks then into an IP header; 
+#    otherwise, creates a new header with all fields set to None. 
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def __init__(self, header_bytes = None):
-        """If bytes are provided, unpacks then into an IP header; otherwise, creates a new header with all fields set to None.
-        
-        hdr_bytes -- a bytes-like object containing the packet data without link-layer header.
-        """
         if not (header_bytes is None):
             # Unpack the byte-aligned fields of the IP header
             self.service_type = header_bytes[1]
@@ -55,6 +91,29 @@ class IpHeader:
             self.dst_ip       = None
             self.options      = None
 
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		__str__
+#
+#    Prototype:	def __str__(self)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - ip header info
+#
+#    Return Values:
+#	
+#    Description:
+#    This function displays the contents of the ip header.
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def __str__(self):
         string = "IP header contents:\n"
         string += "\tIP version: " + str(self.version) + "\n"
@@ -72,7 +131,29 @@ class IpHeader:
         string += "\thas options? : " + ("no" if (self.options is None) else "yes") + "\n"
 
         return string
-
+#########################################################################################################
+# FUNCTION
+#
+#   Name:		get_flags_string
+#
+#    Prototype:	def get_flags_string(self)
+#
+#    Developer:	Mat Siwoski/Shane Spoor
+#
+#    Created On: 2017-03-04
+#
+#    Parameters:
+#    self  - flags
+#
+#    Return Values:
+#	
+#    Description:
+#    This function will get the flags in a string.
+#
+#    Revisions:
+#	(none)
+#    
+#########################################################################################################
     def get_flags_string(self):
         flag_names = []
         for flag in IpHeader.Flags:
