@@ -98,8 +98,8 @@ if __name__ == "__main__":
                             dnat_table[possible_dnat_str] = {"ip":ip_header.src_ip, "port":tcp_header.src_port}
                             break
 
-                #print(ip_header)
-                #print(tcp_header)
+                print(ip_header)
+                print(tcp_header)
                 forward_ip = forward_rules[forward_str]["ip"]
                 forward_port = forward_rules[forward_str]["port"]
                 forward_address = (forward_ip, forward_port)
