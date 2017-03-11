@@ -82,7 +82,7 @@ if __name__ == "__main__":
                     # There wasn't already a mapping for this source NAT. There's no collision though
                     # (no other host is forwarding to the same dest IP with the same source port), so
                     # so just reuse the source port and update the mappings.
-                    dnat_table[dnat_entry_str] = {"ip":ip_header.src_ip, "port":tcp_header.src_port}
+                    dnat_table[dnat_entry_str] = {"ip":ip_header.src_ip, "dst_port":tcp_header.src_port, "src_port":tcp_header.dst_port}
                     snat_table[snat_entry_str] = tcp_header.src_port
                     new_src_port = tcp_header.src_port
                 else:
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                             print("Port chosen: " + str(possible_port))
                             new_src_port = possible_port
                             snat_table[snat_entry_str] = possible_port
-                            dnat_table[possible_dnat_str] = {"ip":ip_header.src_ip, "port":tcp_header.src_port}
+                            dnat_table[possible_dnat_str] = {"ip":ip_header.src_ip, "dst_port":tcp_header.src_port, "src_port":tcp_header.dst_port}
                             break
 
                 print(ip_header)
@@ -127,8 +127,10 @@ if __name__ == "__main__":
                     print(ip_header)
                     print(tcp_header)
                     forward_dst_ip = dnat_table[dnat_entry_str]["ip"]
-                    forward_dst_port = dnat_table[dnat_entry_str]["port"]
+                    forward_dst_port = dnat_table[dnat_entry_str]["dst_port"]
+                    forward_src_port = dnat_table[dnat_entry_str]["src_port"]
                     tcp_header.dst_port = forward_dst_port
+                    tcp_header.src_port = forward_src_port
                     forward_tcp_header = tcp_header.to_bytes(ip_header.dst_ip, forward_dst_ip, data)
 
                     forward_packet = bytearray(response[ip_header.header_len:])     
