@@ -25,6 +25,7 @@ import json
 from socket import socket, inet_ntop, inet_pton
 from socket import AF_INET, SOCK_RAW, IPPROTO_TCP
 from packet import ip, tcp
+from random import randint
 
 FORWARD_RULES_FILE="forward.json"
 
@@ -90,9 +91,11 @@ if __name__ == "__main__":
                     # Theoretically this could loop infinitely (and almost certainly would in real life
                     # since we never clear the used mappings), but for this case it doesn't matter.
                     while True:
+                        print("Choosing a random source port to resolve NAT collision")
                         possible_port = randint(49152, 65535)
                         possible_dnat_str = forward_dst_ip_str + ":" + str(possible_port)
                         if possible_dnat_str not in dnat_table:
+                            print("Port chosen: " + str(possible_port))
                             new_src_port = possible_port
                             snat_table[snat_entry_str] = possible_port
                             dnat_table[possible_dnat_str] = {"ip":ip_header.src_ip, "port":tcp_header.src_port}
@@ -104,7 +107,8 @@ if __name__ == "__main__":
                 forward_port = forward_rules[forward_str]["port"]
                 forward_address = (forward_ip, forward_port)
 
-                tcp_header.port = forward_port
+                tcp_header.dst_port = forward_port
+                tcp_header.src_port = new_src_port
                 response_address = int.from_bytes(inet_pton(AF_INET, address[0]), 'big')
                 forward_ip_little = int.from_bytes(inet_pton(AF_INET, forward_ip), 'big')
                 forward_tcp_header = tcp_header.to_bytes(ip_header.dst_ip, forward_ip_little, data)
@@ -124,7 +128,7 @@ if __name__ == "__main__":
                     print(tcp_header)
                     forward_dst_ip = dnat_table[dnat_entry_str]["ip"]
                     forward_dst_port = dnat_table[dnat_entry_str]["port"]
-                    tcp_header.port = forward_dst_port
+                    tcp_header.dst_port = forward_dst_port
                     forward_tcp_header = tcp_header.to_bytes(ip_header.dst_ip, forward_dst_ip, data)
 
                     forward_packet = bytearray(response[ip_header.header_len:])     
